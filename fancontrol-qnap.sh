@@ -56,7 +56,7 @@ elif [ "$sysModel" = "TS-853A" ]; then
     cpuStepFan2=( 1 2 3 4 5 6 7 )
 elif [ "$sysModel" = "TS-453D" ]; then
     enableFanControl=1
-    cpuStepTemp=( 30 34 37 40 42 49 53 )
+    cpuStepTemp=( 30 34 37 40 42 47 50 )
     cpuStepFan1=( 1  2  3  4  5  6  7 )
 fi
 
@@ -80,10 +80,21 @@ for (( i=0; i<7; i++ )); do
         temp_range="${cpuStepTemp[$((i-1))]}-${cpuStepTemp[$i]}°C"
     fi
 
+    # Get expected RPM for Fan1
+    case ${cpuStepFan1[$i]} in
+        1) RPM1="~430" ;; 2) RPM1="~560" ;; 3) RPM1="~670" ;; 4) RPM1="~750" ;;
+        5) RPM1="~840" ;; 6) RPM1="~1050" ;; 7) RPM1="~1260" ;;
+    esac
+
     if [ $fanNum -eq 2 ]; then
-        log "  Range $i: $temp_range -> Fan1 Mode ${cpuStepFan1[$i]}, Fan2 Mode ${cpuStepFan2[$i]}"
+        # Get expected RPM for Fan2
+        case ${cpuStepFan2[$i]} in
+            1) RPM2="~430" ;; 2) RPM2="~560" ;; 3) RPM2="~670" ;; 4) RPM2="~750" ;;
+            5) RPM2="~840" ;; 6) RPM2="~1050" ;; 7) RPM2="~1260" ;;
+        esac
+        log "  ${temp_range} -> Fan1 Mode ${cpuStepFan1[$i]} ($RPM1 RPM), Fan2 Mode ${cpuStepFan2[$i]} ($RPM2 RPM)"
     else
-        log "  Range $i: $temp_range -> Fan1 Mode ${cpuStepFan1[$i]}"
+        log "  ${temp_range} -> Fan1 Mode ${cpuStepFan1[$i]} ($RPM1 RPM)"
     fi
 done
 log "=========================================="
@@ -137,7 +148,8 @@ while true; do
         done
     fi
 
-    # Determine current temperature range for display
+    # Determine current temperature range for display (using actual fan mode, not index)
+    actual_fan_mode=${cpuStepFan1[$mode_index]}
     temp_range_display=""
     if [ $mode_index -eq 0 ]; then
         temp_range_display="<${cpuStepTemp[0]}°C"
@@ -165,7 +177,7 @@ while true; do
 
     # Log temperature info only in debug mode or when mode changes
     if [ "$DEBUG_MODE" -eq 1 ] || [ "$mode_changed" -eq 1 ]; then
-        log "CPU=${cpuTemp}C (Range $mode_index: $temp_range_display), SYS=${sysTemp}C,$hddTempStr | $fanSpeedStr RPM"
+        log "CPU=${cpuTemp}C (Range $actual_fan_mode: $temp_range_display), SYS=${sysTemp}C,$hddTempStr | $fanSpeedStr RPM"
     fi
 
     # Set fan speeds only if mode changed
